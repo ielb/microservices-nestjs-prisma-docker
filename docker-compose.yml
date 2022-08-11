@@ -1,0 +1,99 @@
+version: '3.8'
+
+services:
+
+  api-gateway:
+    image: "api-gateway:dev"
+    build:
+      context: "./api-gateway"
+    ports:
+      - "3030:3030"
+    depends_on:
+      - product-svc
+      - user-svc
+    env_file:
+      - ./api-gateway/.env
+    environment:
+      PORT: 3030
+      PRODUCT_PORT: 3031
+      USER_PORT: 3032
+      PRODUCT_HOST: product-svc
+      USER_HOST: user-svc
+    restart: "on-failure"
+
+    networks:
+      - backend
+
+  product-svc:
+    image: "product-service:dev"
+    build:
+      context: "./product-svc"
+    ports:
+      - "3031:3031"
+    env_file:
+      - ./product-svc/.env
+    environment:
+      HOST: product-svc
+      PORT: 3031
+      DB_HOST: user-db
+      DB_PORT: 5432
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: product-db
+      DATABASE_URL: postgresql://root:root@user-db:5432/product-db?schema=public
+    restart: "on-failure"
+    depends_on:
+      - user-db
+    networks:
+      - backend
+
+  user-svc:
+    image: "user-service:dev"
+    build:
+      context: "./user-svc"
+    ports:
+      - "3032:3032"
+    env_file:
+      - "./user-svc/.env"
+    environment:
+      HOST: user-svc
+      PORT: 3032
+      DB_HOST: user-db
+      DB_PORT: 5432
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: user-db
+      DATABASE_URL: postgresql://root:root@user-db:5432/user-db?schema=public
+    restart: "on-failure"
+    depends_on:
+      - user-db
+    networks:
+      - backend
+
+  user-db:
+    image: postgres
+    environment:
+      - DATABASE_HOST=user-db
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DB=user-db
+    restart: "on-failure"
+    ports:
+      - "5432:5432"
+    networks:
+      - backend
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "test@gmail.com"
+      PGADMIN_DEFAULT_PASSWORD: "test123!"
+    ports:
+      - "16543:80"
+    depends_on:
+      - postgres
+
+networks:
+  backend:
+
+
